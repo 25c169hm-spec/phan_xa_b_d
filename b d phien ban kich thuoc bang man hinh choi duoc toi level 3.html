@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bóng Chữ B và D - Game Cho Bé</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 30px;
+            padding: 15px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 1200px;
+            height: 100%;
+            max-height: 800px;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .game-wrapper {
+            position: relative;
+            width: 100%;
+            flex: 1 1 auto; /* Chiếm không gian còn lại */
+            min-height: 0; /* Quan trọng để flex co giãn đúng */
+            background: linear-gradient(to bottom, #87CEEB, #E0F6FF);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(255,255,255,0.5);
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            cursor: pointer;
+            touch-action: none;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            font-size: clamp(14px, 2.5vh, 20px);
+            font-weight: bold;
+            flex-wrap: wrap;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .info-box {
+            background: rgba(255, 255, 255, 0.3);
+            padding: 8px 16px;
+            border-radius: 30px;
+            backdrop-filter: blur(5px);
+            border: 2px solid rgba(255,255,255,0.5);
+            white-space: nowrap;
+        }
+
+        .pet-area {
+            margin-top: 15px;
+            text-align: center;
+            font-size: clamp(16px, 2.8vh, 22px);
+            background: rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            border-radius: 50px;
+            border: 2px solid rgba(255,255,255,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+        }
+
+        .pet-emoji {
+            font-size: clamp(24px, 4vh, 32px);
+            filter: drop-shadow(2px 2px 5px rgba(0,0,0,0.2));
+        }
+
+        button {
+            background: #FF6B6B;
+            border: none;
+            color: white;
+            font-size: clamp(14px, 2.5vh, 18px);
+            font-weight: bold;
+            padding: 10px 25px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-family: inherit;
+            box-shadow: 0 5px 0 #C44A4A;
+            transition: all 0.1s ease;
+            border: 2px solid rgba(255,255,255,0.5);
+            min-width: 120px;
+            flex-shrink: 0;
+        }
+
+        button:active {
+            transform: translateY(5px);
+            box-shadow: 0 0 0 #C44A4A;
+        }
+
+        button:hover {
+            background: #FF8A8A;
+        }
+
+        .level-complete, .game-over {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 30px 50px;
+            border-radius: 60px;
+            border: 5px solid white;
+            text-align: center;
+            display: none;
+            z-index: 100;
+            width: 90%;
+            max-width: 500px;
+            background: rgba(255, 215, 0, 0.95);
+            box-shadow: 0 0 30px gold;
+        }
+
+        .game-over {
+            background: rgba(255, 99, 71, 0.95);
+            box-shadow: 0 0 30px #FF4444;
+        }
+
+        .level-complete h2, .game-over h2 {
+            font-size: clamp(28px, 5vh, 48px);
+            color: white;
+            margin-bottom: 20px;
+            text-shadow: 3px 3px 0 #B8860B;
+        }
+
+        .game-over h2 {
+            text-shadow: 3px 3px 0 #8B0000;
+        }
+
+        .reward-text {
+            font-size: clamp(16px, 3vh, 24px);
+            color: #4A0E4E;
+            background: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            margin: 20px 0;
+            word-break: break-word;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            z-index: 99;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+        }
+
+        .total-time {
+            background: rgba(255, 215, 0, 0.3);
+            border: 2px solid gold;
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay" id="overlay"></div>
+    
+    <div class="level-complete" id="levelComplete">
+        <h2>🎉 CHIẾN THẮNG! 🎉</h2>
+        <div class="reward-text" id="rewardMessage">Bạn nhận được: Chú Mèo 🐱</div>
+        <button onclick="nextLevel()">Màn tiếp theo ➡️</button>
+    </div>
+
+    <div class="game-over" id="gameOver">
+        <h2>🏆 KẾT THÚC 🏆</h2>
+        <div class="reward-text" id="gameOverMessage"></div>
+        <button onclick="restartGame()">Chơi lại từ đầu 🔄</button>
+    </div>
+
+    <div class="game-container">
+        <div class="game-info">
+            <div class="info-box">⭐ <span id="score">0</span>/20</div>
+            <div class="info-box">Level <span id="currentLevel">1</span>/10</div>
+            <div class="info-box">⏱️ <span id="timer">60</span>s</div>
+            <div class="info-box total-time">⌛ <span id="totalTime">5:00</span></div>
+            <div class="info-box">🎈 <span id="balloonCount">0</span></div>
+        </div>
+
+        <div class="game-wrapper">
+            <canvas id="gameCanvas"></canvas>
+        </div>
+
+        <div class="pet-area">
+            <span class="pet-emoji" id="petEmoji">🐣</span>
+            <span id="petName">Bạn mới</span>
+        </div>
+
+        <div class="button-container">
+            <button onclick="restartGame()">Chơi lại 🔄</button>
+            <button onclick="togglePause()" id="pauseBtn">Tạm dừng ⏸️</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Biến game
+        let score = 0;
+        let level = 1;
+        let timeLeft = 60;
+        let totalSeconds = 300; // 5 phút = 300 giây
+        let gameRunning = true;
+        let gamePaused = false;
+        let gameTimer = null;
+        let totalTimer = null;
+        let spawnTimer = null;
+        let animationFrame = null;
+        
+        // Danh sách bóng
+        let balloons = [];
+        
+        // Kích thước canvas sẽ được set sau
+        let canvasWidth = 800;
+        let canvasHeight = 500;
+        
+        // Pet và phần thưởng
+        const pets = ['🐣', '🐱', '🐶', '🐼', '🦊', '🦁', '🐸', '🐧', '🐨', '🦉'];
+        const petNames = ['Bạn mới', 'Mèo con', 'Cún con', 'Gấu trúc', 'Cáo nhỏ', 'Sư tử', 'Ếch xanh', 'Chim cánh cụt', 'Gấu túi', 'Cú mèo'];
+        const explosionEffects = ['✨', '💫', '🌟', '💥', '❤️', '🌈', '⭐', '🎉', '🦋', '🌸'];
+        let currentPet = 0;
+        let currentExplosion = 0;
+        
+        // Tốc độ game theo thông số mới
+        function getSpawnDelay(level) {
+            switch(level) {
+                case 1: return 1000;  // 1 giây
+                case 2: return 900;  // 0.9 giây
+                case 3: return 800;  // 0.8 giây
+                case 4: return 700;   // 0.7 giây
+                case 5: return 600;   // 0.6 giây
+                case 6: return 500;   // 0.5 giây
+                case 7: return 400;   // 0.4 giây
+                case 8: return 300;   // 0.3 giây
+                case 9: return 200;   // 0.2 giây
+                case 10: return 80;   // 0.08 giây - siêu nhanh
+                default: return 800;
+            }
+        }
+
+        function getBalloonSpeed(level) {
+            // Tốc độ di chuyển tăng dần theo level
+            return 0.1 + level * 0.1;
+        }
+        
+        let spawnDelay = getSpawnDelay(1);
+        let balloonSpeed = getBalloonSpeed(1);
+        let maxBalloons = 40;
+        
+        // Điều chỉnh tốc độ theo level
+        function updateSpeedByLevel() {
+            spawnDelay = getSpawnDelay(level);
+            balloonSpeed = getBalloonSpeed(level);
+            
+            if (spawnTimer && gameRunning && !gamePaused) {
+                clearInterval(spawnTimer);
+                startSpawning();
+            }
+        }
+        
+        // Lớp Balloon với chữ b và d
+        class Balloon {
+            constructor(canvasWidth, canvasHeight, level) {
+                // Kích thước bóng dựa trên chiều cao màn hình
+                this.baseSize = Math.min(canvasWidth, canvasHeight) * 0.06;
+                this.size = this.baseSize;
+                this.x = Math.random() * (canvasWidth - 2 * this.size) + this.size;
+                this.y = Math.random() * (canvasHeight - 2 * this.size) + this.size;
+                
+                // Chữ: 'b' là đúng (70%), 'd' là sai (30%)
+                this.type = Math.random() < 0.7 ? 'correct' : 'wrong';
+                this.letter = this.type === 'correct' ? 'b' : 'd';
+                
+                // Hướng di chuyển ngẫu nhiên
+                const speed = balloonSpeed * (0.1 + Math.random() * 0.7);
+                const angle = Math.random() * Math.PI * 2;
+                this.dx = Math.cos(angle) * speed;
+                this.dy = Math.sin(angle) * speed;
+                
+                if (Math.abs(this.dx) < 0.3) this.dx = this.dx > 0 ? 0.5 : -0.5;
+                if (Math.abs(this.dy) < 0.3) this.dy = this.dy > 0 ? 0.5 : -0.5;
+                
+                this.color = this.getRandomColor();
+                this.age = 0;
+                this.lastDirectionChange = 0;
+            }
+            
+            getRandomColor() {
+                const colors = ['#FF6B6B', '#4ECDC4', '#FFD93D', '#6BCB77', '#A267AC', '#FF9F1C', '#FF8A8A', '#7B68EE'];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+            
+            update(canvasWidth, canvasHeight) {
+                this.age++;
+                
+                this.x += this.dx;
+                this.y += this.dy;
+                
+                // Va chạm biên
+                if (this.x < this.size) {
+                    this.x = this.size;
+                    this.dx = -this.dx;
+                }
+                if (this.x > canvasWidth - this.size) {
+                    this.x = canvasWidth - this.size;
+                    this.dx = -this.dx;
+                }
+                if (this.y < this.size) {
+                    this.y = this.size;
+                    this.dy = -this.dy;
+                }
+                if (this.y > canvasHeight - this.size) {
+                    this.y = canvasHeight - this.size;
+                    this.dy = -this.dy;
+                }
+                
+                // Đổi hướng thỉnh thoảng
+                this.lastDirectionChange++;
+                if (this.lastDirectionChange > 30 && Math.random() < 0.02) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
+                    this.dx = Math.cos(angle) * speed;
+                    this.dy = Math.sin(angle) * speed;
+                    this.lastDirectionChange = 0;
+                }
+            }
+            
+            draw(ctx) {
+                ctx.save();
+                
+                // Hiệu ứng phát sáng
+                ctx.shadowColor = 'rgba(255,255,255,0.4)';
+                ctx.shadowBlur = 8 + Math.sin(this.age * 0.1) * 3;
+                
+                // Vẽ bóng
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                
+                const gradient = ctx.createRadialGradient(
+                    this.x - 3, this.y - 3, 3,
+                    this.x, this.y, this.size
+                );
+                gradient.addColorStop(0, 'white');
+                gradient.addColorStop(0.6, this.color);
+                gradient.addColorStop(1, this.color);
+                
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                
+                // Vẽ dây bóng
+                ctx.shadowBlur = 0;
+                ctx.beginPath();
+                ctx.moveTo(this.x - 3, this.y + this.size);
+                ctx.lineTo(this.x - 3, this.y + this.size + 8);
+                ctx.strokeStyle = '#8B4513';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                
+                // Vẽ chữ
+                ctx.font = `bold ${this.size * 0.8}px 'Comic Sans MS', 'Arial'`;
+                ctx.fillStyle = 'black';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.letter, this.x, this.y - 1);
+                
+                ctx.restore();
+            }
+            
+            isClicked(mouseX, mouseY) {
+                const distance = Math.sqrt((mouseX - this.x) ** 2 + (mouseY - this.y) ** 2);
+                return distance < this.size;
+            }
+        }
+        
+        // Vẽ nền
+        function drawBackground() {
+            const w = canvasWidth;
+            const h = canvasHeight;
+            
+            const gradient = ctx.createLinearGradient(0, 0, 0, h);
+            gradient.addColorStop(0, '#87CEEB');
+            gradient.addColorStop(1, '#E0F6FF');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, w, h);
+            
+            // Vẽ mây
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            
+            ctx.beginPath();
+            ctx.arc(w * 0.15, h * 0.15, w * 0.04, 0, Math.PI*2);
+            ctx.arc(w * 0.2, h * 0.12, w * 0.035, 0, Math.PI*2);
+            ctx.arc(w * 0.1, h * 0.12, w * 0.035, 0, Math.PI*2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(w * 0.8, h * 0.2, w * 0.05, 0, Math.PI*2);
+            ctx.arc(w * 0.85, h * 0.17, w * 0.04, 0, Math.PI*2);
+            ctx.arc(w * 0.75, h * 0.17, w * 0.04, 0, Math.PI*2);
+            ctx.fill();
+            
+            // Vẽ mặt trời
+            ctx.save();
+            ctx.shadowColor = 'rgba(255,255,0,0.2)';
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.arc(w * 0.9, h * 0.1, w * 0.03, 0, Math.PI*2);
+            ctx.fillStyle = '#FFD700';
+            ctx.fill();
+            ctx.restore();
+        }
+        
+        // Vẽ pet
+        function drawPet() {
+            ctx.save();
+            ctx.font = `${Math.min(canvasWidth, canvasHeight) * 0.05}px Arial`;
+            ctx.fillStyle = 'white';
+            ctx.shadowColor = 'rgba(0,0,0,0.3)';
+            ctx.shadowBlur = 8;
+            ctx.fillText(pets[currentPet], 15, canvasHeight - 20);
+            ctx.restore();
+        }
+        
+        // Xử lý click
+        canvas.addEventListener('click', handleCanvasClick);
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const fakeClick = { clientX: touch.clientX, clientY: touch.clientY };
+            handleCanvasClick(fakeClick);
+        });
+        
+        function handleCanvasClick(e) {
+            if (!gameRunning || gamePaused) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvasWidth / rect.width;
+            const scaleY = canvasHeight / rect.height;
+            
+            const mouseX = (e.clientX - rect.left) * scaleX;
+            const mouseY = (e.clientY - rect.top) * scaleY;
+            
+            for (let i = balloons.length - 1; i >= 0; i--) {
+                const balloon = balloons[i];
+                if (balloon.isClicked(mouseX, mouseY)) {
+                    if (balloon.type === 'correct') { // Chữ 'b'
+                        score++;
+                        document.getElementById('score').textContent = score;
+                        
+                        showExplosion(balloon.x, balloon.y, explosionEffects[currentExplosion]);
+                        
+                        balloons.splice(i, 1);
+                        
+                        if (score >= 20) {
+                            levelComplete();
+                        }
+                    } else { // Chữ 'd'
+                        score = Math.max(0, score - 1);
+                        document.getElementById('score').textContent = score;
+                        
+                        showMessage('❌', balloon.x, balloon.y - 25, '#FF4444');
+                    }
+                    break;
+                }
+            }
+            
+            document.getElementById('balloonCount').textContent = balloons.length;
+        }
+        
+        // Hiệu ứng nổ
+        function showExplosion(x, y, emoji) {
+            ctx.save();
+            ctx.font = `${Math.min(canvasWidth, canvasHeight) * 0.07}px Arial`;
+            ctx.fillStyle = 'gold';
+            ctx.shadowColor = 'orange';
+            ctx.shadowBlur = 12;
+            ctx.fillText(emoji, x - 15, y - 25);
+            ctx.restore();
+            
+            canvas.style.transform = 'translate(1px, -1px)';
+            setTimeout(() => canvas.style.transform = 'translate(-1px, 1px)', 40);
+            setTimeout(() => canvas.style.transform = 'translate(0, 0)', 80);
+        }
+        
+        function showMessage(text, x, y, color) {
+            ctx.save();
+            ctx.font = `bold ${Math.min(canvasWidth, canvasHeight) * 0.035}px 'Comic Sans MS'`;
+            ctx.fillStyle = color;
+            ctx.shadowColor = 'black';
+            ctx.shadowBlur = 4;
+            ctx.fillText(text, x - 20, y);
+            ctx.restore();
+        }
+        
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+        
+        function checkGameOver() {
+            if (level > 10 || totalSeconds <= 0) {
+                gameRunning = false;
+                clearInterval(gameTimer);
+                clearInterval(totalTimer);
+                clearInterval(spawnTimer);
+                
+                let message = '';
+                if (level > 10) {
+                    message = '🎉 Chúc mừng! Bạn đã hoàn thành 10 level! 🎉';
+                } else {
+                    message = '⏰ Hết 5 phút! Bạn chơi rất tốt! ⏰';
+                }
+                
+                document.getElementById('gameOverMessage').textContent = message;
+                document.getElementById('gameOver').style.display = 'block';
+                document.getElementById('overlay').style.display = 'block';
+            }
+        }
+        
+        function levelComplete() {
+            if (level >= 10) {
+                level = 11;
+                checkGameOver();
+                return;
+            }
+            
+            gameRunning = false;
+            gamePaused = false;
+            clearInterval(spawnTimer);
+            
+            if (level < pets.length) {
+                currentPet = level;
+                document.getElementById('petEmoji').textContent = pets[currentPet];
+                document.getElementById('petName').textContent = petNames[currentPet];
+            }
+            
+            if (level <= explosionEffects.length) {
+                currentExplosion = level - 1;
+            }
+            
+            document.getElementById('rewardMessage').textContent = 
+                `Bạn nhận được: ${petNames[level]} ${pets[level]}`;
+            document.getElementById('levelComplete').style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('pauseBtn').textContent = 'Tạm dừng ⏸️';
+        }
+        
+        function nextLevel() {
+            level++;
+            document.getElementById('currentLevel').textContent = level;
+            
+            document.getElementById('levelComplete').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+            
+            score = 0;
+            timeLeft = 60;
+            balloons = [];
+            document.getElementById('score').textContent = '0';
+            document.getElementById('timer').textContent = timeLeft;
+            document.getElementById('balloonCount').textContent = '0';
+            
+            updateSpeedByLevel();
+            
+            gameRunning = true;
+            startGame();
+        }
+        
+        function startSpawning() {
+            if (spawnTimer) clearInterval(spawnTimer);
+            
+            spawnTimer = setInterval(() => {
+                if (gameRunning && !gamePaused && balloons.length < maxBalloons) {
+                    balloons.push(new Balloon(canvasWidth, canvasHeight, level));
+                    document.getElementById('balloonCount').textContent = balloons.length;
+                }
+            }, spawnDelay);
+        }
+        
+        function togglePause() {
+            gamePaused = !gamePaused;
+            const pauseBtn = document.getElementById('pauseBtn');
+            
+            if (gamePaused) {
+                pauseBtn.textContent = 'Tiếp tục ▶️';
+                clearInterval(spawnTimer);
+            } else {
+                pauseBtn.textContent = 'Tạm dừng ⏸️';
+                startSpawning();
+            }
+        }
+        
+        function restartGame() {
+            level = 1;
+            score = 0;
+            timeLeft = 60;
+            totalSeconds = 300;
+            balloons = [];
+            currentPet = 0;
+            currentExplosion = 0;
+            gamePaused = false;
+            
+            document.getElementById('currentLevel').textContent = '1';
+            document.getElementById('score').textContent = '0';
+            document.getElementById('timer').textContent = '60';
+            document.getElementById('totalTime').textContent = formatTime(totalSeconds);
+            document.getElementById('balloonCount').textContent = '0';
+            document.getElementById('petEmoji').textContent = pets[0];
+            document.getElementById('petName').textContent = petNames[0];
+            document.getElementById('pauseBtn').textContent = 'Tạm dừng ⏸️';
+            
+            document.getElementById('levelComplete').style.display = 'none';
+            document.getElementById('gameOver').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+            
+            gameRunning = true;
+            
+            clearInterval(gameTimer);
+            clearInterval(totalTimer);
+            clearInterval(spawnTimer);
+            
+            spawnDelay = getSpawnDelay(1);
+            balloonSpeed = getBalloonSpeed(1);
+            
+            startGame();
+        }
+        
+        function startGame() {
+            gameTimer = setInterval(() => {
+                if (gameRunning && !gamePaused) {
+                    timeLeft--;
+                    document.getElementById('timer').textContent = timeLeft;
+                    
+                    if (timeLeft <= 0) {
+                        gameRunning = false;
+                        clearInterval(gameTimer);
+                        clearInterval(spawnTimer);
+                        alert('Hết giờ level! Bấm "Chơi lại" để thử lại nhé!');
+                    }
+                }
+            }, 1000);
+            
+            totalTimer = setInterval(() => {
+                if (gameRunning && !gamePaused) {
+                    totalSeconds--;
+                    document.getElementById('totalTime').textContent = formatTime(totalSeconds);
+                    
+                    if (totalSeconds <= 0) {
+                        checkGameOver();
+                    }
+                }
+            }, 1000);
+            
+            startSpawning();
+        }
+        
+        function resizeCanvas() {
+            const wrapper = document.querySelector('.game-wrapper');
+            canvasWidth = wrapper.clientWidth;
+            canvasHeight = wrapper.clientHeight;
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+            
+            balloons.forEach(balloon => {
+                balloon.baseSize = Math.min(canvasWidth, canvasHeight) * 0.06;
+                balloon.size = balloon.baseSize;
+            });
+        }
+        
+        function gameLoop() {
+            if (!gameRunning || gamePaused) {
+                if (!gamePaused) {
+                    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+                    
+                    ctx.font = `bold ${Math.min(canvasWidth, canvasHeight) * 0.05}px 'Comic Sans MS'`;
+                    ctx.fillStyle = 'white';
+                    ctx.shadowColor = 'black';
+                    ctx.shadowBlur = 8;
+                    ctx.textAlign = 'center';
+                    ctx.fillText('⏸️ TẠM DỪNG', canvasWidth/2, canvasHeight/2);
+                }
+                
+                animationFrame = requestAnimationFrame(gameLoop);
+                return;
+            }
+            
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            drawBackground();
+            
+            for (let i = 0; i < balloons.length; i++) {
+                balloons[i].update(canvasWidth, canvasHeight);
+                balloons[i].draw(ctx);
+            }
+            
+            drawPet();
+            
+            animationFrame = requestAnimationFrame(gameLoop);
+        }
+        
+        // Khởi tạo
+        window.onload = () => {
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            startGame();
+            gameLoop();
+        };
+        
+        window.onbeforeunload = () => {
+            clearInterval(gameTimer);
+            clearInterval(totalTimer);
+            clearInterval(spawnTimer);
+            cancelAnimationFrame(animationFrame);
+        };
+    </script>
+</body>
+</html>
